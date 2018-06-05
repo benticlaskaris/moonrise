@@ -1,0 +1,3 @@
+[submodule "libs/moonlight-common-c"]
+	path = libs/moonlight-common-c
+	url = https://github.com/natinusala/moonlight-common-c
