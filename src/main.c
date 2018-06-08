@@ -21,13 +21,61 @@
 
 #include <switch.h>
 
+#include "libgamestream/client.h"
+#include "libgamestream/errors.h"
+
+#define MAX_ADDRESS_SIZE 40
+
+#define MOONRISE_VERSION "0.1"
+
+#define KEY_DIR "/switch/moonrise"
+
+struct {
+	char* address;				// server address
+	bool unsupported;			// accept unsupported video modes ?
+} config;
+
 int main(int argc, char **argv)
 {
 	gfxInitDefault();
+	csrngInitialize();
+	socketInitializeDefault();
 	
 	consoleInit(NULL);
 	
-	printf("The Moon rises on the Horizon...");
+	printf("----------------------------------------------\n");
+	printf("Moonrise v" MOONRISE_VERSION " by natinusala\n");
+	printf("Adapted from Moonlight Embedded by Iwan Timmer\n");
+	printf("----------------------------------------------\n\n\n");
+	
+	// TODO Read the config from a file, with different defaults
+	config.address = "192.168.100.139";
+	config.unsupported = false;
+	
+	printf("[INFO] Connecting to %s...\n", config.address);
+	
+	int ret;
+	
+	if ((ret = gs_init(NULL, config.address, KEY_DIR, config.unsupported)) == GS_OUT_OF_MEMORY) 
+	{
+		printf("[ERROR] Not enough memory\n");
+	}
+	else if (ret == GS_ERROR)
+	{
+		printf("[ERROR] GameStream error %s\n", gs_error);
+	}
+	else if (ret == GS_INVALID) 
+	{
+		printf("[ERROR] Invalid data received from server %s\n", gs_error);
+	} 
+	else if (ret == GS_UNSUPPORTED_VERSION) 
+	{
+		printf("[ERROR] Unsupported version %s\n", gs_error);
+	} 
+	else if (ret != GS_OK) 
+	{
+		printf("[ERROR] Can't connect to server %s\n", config.address);
+	}
 	
 	while (appletMainLoop())
 	{
@@ -43,5 +91,7 @@ int main(int argc, char **argv)
 	}
 	
 	gfxExit();
+	socketExit();
+	csrngExit();
     return 0;
 }
