@@ -23,7 +23,7 @@
 #include <wolfssl/wolfcrypt/asn_public.h>
 
 #define RSA_KEY_SIZE 2048
-#define VALIDITY_YEARS 10
+#define VALIDITY_YEARS 20
 
 void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 {
@@ -49,18 +49,47 @@ void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 		return;
 	}
 	
+	
+	
 	//Make RSA
+	printf("[INFO] Making RSA key...\n");
 	
 	ret = wc_MakeRsaKey(&key, RSA_KEY_SIZE, 65537, &rng);
     if(ret != 0) {
         printf("[ERROR] Unable to generate RSA key : %d\n", ret);
+		return;
     }
 	
 	//Save RSA
+	printf("[INFO] Saving RSA key...\n");
 	
-	//TODO
+	byte der_key[4096];
+	
+	int der_key_size = wc_RsaKeyToDer(&key, der_key, sizeof(der_key));
+	
+	if(der_key_size < 0) {
+        printf("[ERROR] Unable to convert RSA key to DER : %d\n", der_key_size);
+		return;
+    }
+	
+	byte pem_key[4096];
+	
+	int pem_key_size = wc_DerToPem(der_key, der_key_size, pem_key, sizeof(pem_key), PRIVATEKEY_TYPE);
+	
+	if (pem_key_size < 0)
+	{
+		printf("[ERROR] Unable to convert RSA key to PEM : %d\n", pem_key_size);
+		return;
+	}
+	
+	FILE* fd = fopen(key_file, "w");
+	
+	fwrite(pem_key, pem_key_size, 1, fd);
+	
+	fclose(fd);
 	
 	//Make cert
+	printf("[INFO] Making certificate...\n");
 	
 	Cert cert;
 	
@@ -83,11 +112,12 @@ void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 	
 	if (der_size < 0)
 	{
-		printf("[ERROR] Unable to generate certificate : %d\n", ret);
+		printf("[ERROR] Unable to generate certificate : %d\n", der_size);
 		return;
 	}
 	
 	//Save cert
+	printf("[INFO] Saving certificate...\n");
 	
 	byte pem_cert[4096];
 	
@@ -95,11 +125,11 @@ void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 	
 	if (pem_size < 0)
 	{
-		printf("[ERROR] Unable to convert certificate : %d\n", ret);
+		printf("[ERROR] Unable to convert certificate : %d\n", pem_size);
 		return;
 	}
 	
-	FILE* fd = fopen(cert_file, "w");
+	fd = fopen(cert_file, "w");
 	
 	fwrite(pem_cert, pem_size, 1, fd);
 	

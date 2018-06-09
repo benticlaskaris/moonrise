@@ -89,9 +89,9 @@ static int load_cert(const char* keyDirectory) {
     char p12FilePath[PATH_MAX];
     snprintf(p12FilePath, PATH_MAX, "%s/%s", keyDirectory, P12_FILE_NAME);
 	
-	printf("[INFO] Generating certificate...");
+	printf("[INFO] Generating certificate...\n");
     mkcert(certificateFilePath, p12FilePath, keyFilePath);
-    printf(" done\n");
+    printf("[INFO] Done\n");
     
     fd = fopen(certificateFilePath, "r");
   }
