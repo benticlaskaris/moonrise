@@ -191,8 +191,6 @@ static int load_cert(const char* keyDirectory)
   
   free(key_buf);
   
-  //TODO Check that private key matches cert ?
-
   return GS_OK;
 }
 
