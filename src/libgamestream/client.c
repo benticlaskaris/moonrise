@@ -28,13 +28,9 @@
 #include <switch.h>
 #include <stdio.h>
 
-#include <wolfssl/openssl/sha.h>
-#include <wolfssl/openssl/aes.h>
-#include <wolfssl/openssl/rand.h>
-#include <wolfssl/openssl/evp.h>
-#include <wolfssl/openssl/x509.h>
-#include <wolfssl/openssl/pem.h>
-#include <wolfssl/openssl/err.h>
+#include <wolfssl/ssl.h>
+#include <wolfssl/openssl/ssl.h>
+#include <wolfssl/wolfcrypt/asn_public.h>
 
 #define UNIQUE_FILE_NAME "uniqueid.dat"
 #define P12_FILE_NAME "client.p12"
@@ -46,6 +42,7 @@ static char unique_id[UNIQUEID_CHARS+1];
 
 static WOLFSSL_X509* cert;
 static char cert_hex[4096];
+
 static WOLFSSL_EVP_PKEY* private_key;
 
 const char* gs_error;
@@ -76,35 +73,68 @@ static int load_unique_id(const char* keyDirectory) {
     return GS_OK;
 }
 
-static int load_cert(const char* keyDirectory) {
+static int load_cert(const char* keyDirectory) 
+{
+  wolfSSL_add_all_algorithms();
+  
   char certificateFilePath[PATH_MAX];
   snprintf(certificateFilePath, PATH_MAX, "%s/%s", keyDirectory, CERTIFICATE_FILE_NAME);
 
   char keyFilePath[PATH_MAX];
   snprintf(&keyFilePath[0], PATH_MAX, "%s/%s", keyDirectory, KEY_FILE_NAME);
+  
+  char p12FilePath[PATH_MAX];
+  snprintf(p12FilePath, PATH_MAX, "%s/%s", keyDirectory, P12_FILE_NAME);
 
   FILE *fd = fopen(certificateFilePath, "r");
-  if (fd == NULL) {
-
-    char p12FilePath[PATH_MAX];
-    snprintf(p12FilePath, PATH_MAX, "%s/%s", keyDirectory, P12_FILE_NAME);
-	
+  if (fd == NULL) 
+  {
 	printf("[INFO] Generating certificate...\n");
     mkcert(certificateFilePath, p12FilePath, keyFilePath);
-    printf("[INFO] Done\n");
+    printf("[INFO] Done generating certificare\n");
     
     fd = fopen(certificateFilePath, "r");
   }
+  
+  //Open certificate
 
   if (fd == NULL) {
     gs_error = "Can't open certificate file";
     return GS_FAILED;
   }
-
-  if (!(cert = PEM_read_X509(fd, NULL, NULL, NULL))) {
-    gs_error = "Error loading cert into memory";
-    return GS_FAILED;
+  
+  struct stat stat_buf;
+  
+  stat(certificateFilePath, &stat_buf);
+  
+  byte* cert_buf = malloc(stat_buf.st_size);
+  
+  fread(cert_buf, stat_buf.st_size, 1, fd);
+  
+  byte der_cert[4096];
+  
+  int der_cert_size = wc_CertPemToDer(cert_buf, stat_buf.st_size, der_cert, sizeof(der_cert), CERT_TYPE);
+  
+  if (der_cert_size < 0)
+  {
+	  gs_error = "Cannot load certificate";
+	  printf("[ERROR] Cannot convert certificate to DER : %d\n", der_cert_size);
+	  return GS_FAILED;
   }
+  
+  const byte* tmp = der_cert;
+      
+  cert = wolfSSL_d2i_X509(NULL, &tmp, der_cert_size);
+  
+  if (cert == NULL)
+  {
+	  gs_error = "Cannot load certificate into memory";
+	  return GS_FAILED;
+  }
+  
+  free(cert_buf);
+
+  //Generate certificate hex
 
   rewind(fd);
 
@@ -117,21 +147,59 @@ static int load_cert(const char* keyDirectory) {
   cert_hex[length] = 0;
 
   fclose(fd);
+  
+  printf("[INFO] Certificate loaded\n");
+  
+  //Load private key
+  
+  printf("[INFO] Loading private key...\n");
 
   fd = fopen(keyFilePath, "r");
   if (fd == NULL) {
-    gs_error = "Error loading key into memory";
+    gs_error = "Can't open key file";
     return GS_FAILED;
   }
+  
+  stat(keyFilePath, &stat_buf);
+  
+  byte* key_buf = malloc(stat_buf.st_size);
+  
+  fread(key_buf, stat_buf.st_size, 1, fd);
 
-  PEM_read_PrivateKey(fd, &private_key, NULL, NULL);
   fclose(fd);
+  
+  byte der_key[4096];
+  
+  int der_key_size = wc_KeyPemToDer(key_buf, stat_buf.st_size, der_key, sizeof(der_key), NULL);
+  
+  if (der_key_size < 0)
+  {
+	  gs_error = "Cannot convert key to DER";
+	  printf("[ERROR] Cannot convert key to DER : %d\n", der_key_size);
+	  return GS_FAILED;
+  }
+  
+  const byte* tmp2 = der_key;
+      
+  private_key = wolfSSL_d2i_PrivateKey(EVP_PKEY_RSA, NULL, &tmp2, der_key_size);
+  
+  if (private_key == NULL)
+  {
+	  gs_error = "Cannot load key into memory";
+	  return GS_FAILED;
+  }
+  
+  free(key_buf);
+  
+  //TODO Check that private key matches cert ?
 
   return GS_OK;
 }
 
 int gs_init(void* server, char* address, const char* key_dir, bool unsupported)
 {
+	mkdir(key_dir, 777);
+	
     if (load_unique_id(key_dir) != GS_OK)
     {
         printf("[ERROR] Unable to load Unique ID\n");
@@ -144,8 +212,16 @@ int gs_init(void* server, char* address, const char* key_dir, bool unsupported)
         return GS_FAILED;
     }
 
-
     printf("[INFO] Unique ID : %s\n", unique_id);
+	
+	  
+	printf("[INFO] Initialization done\n");
+	  
+	//Connection
+	  
+	printf("[INFO] Connecting to %s...\n", address);
+	
+	//TODO
 
     return GS_OK;
 }

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	config.address = "192.168.100.139";
 	config.unsupported = false;
 	
-	printf("[INFO] Connecting to %s...\n", config.address);
+	printf("[INFO] Initialization...\n");
 	
 	int ret;
 	
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	} 
 	else if (ret != GS_OK) 
 	{
-		printf("[ERROR] Can't connect to server %s\n", config.address);
+		printf("[ERROR] Initialization failed\n");
 	}
 	
 	while (appletMainLoop())

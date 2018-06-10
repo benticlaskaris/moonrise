@@ -20,10 +20,15 @@
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/rsa.h>
+#include <wolfssl/wolfcrypt/asn.h>
 #include <wolfssl/wolfcrypt/asn_public.h>
+#include <wolfssl/wolfcrypt/pkcs12.h>
 
 #define RSA_KEY_SIZE 2048
 #define VALIDITY_YEARS 20
+
+#define PASSWORD "limelight"
+#define NAME "GameStream"
 
 void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 {
@@ -48,8 +53,6 @@ void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 		printf("[ERROR] Unable to init RSA key : %d\n", ret);
 		return;
 	}
-	
-	
 	
 	//Make RSA
 	printf("[INFO] Making RSA key...\n");
@@ -135,10 +138,17 @@ void mkcert(const char* cert_file, const char* p12_file, const char* key_file)
 	
 	fclose(fd);
 	
-	// TODO storage file
+	//Make pkcs12
+	//Is this useful ?
+	/*printf("[INFO] Making pkcs12...\n");
+	
+	WC_PKCS12* pkcs12 = wc_PKCS12_create(PASSWORD, strlen(PASSWORD), NAME, der_key, der_key_size, der_cert, der_size, NULL, PBE_SHA1_DES3, PBE_SHA1_RC4_128, WC_PKCS12_ITT_DEFAULT, 1, 0, NULL);
+	
+	//Save pkcs12
+	printf("[INFO] Saving pkcs12...\n");*/
 	
 	//Cleanup
-	
 	wc_FreeRsaKey(&key);
 	wc_FreeRng(&rng);	
+	//wc_PKCS12_free(pkcs12);
 }
