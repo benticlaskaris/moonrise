@@ -1,6 +1,7 @@
 /*
     moonrise - Moonlight implementation for the Nintendo Switch
     Copyright (C) 2018  natinusala
+	Copyright (C) 2015-2017 Iwan Timmer
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +19,23 @@
 
 #pragma once
 
+#include "xml.h"
+
 #include <stdbool.h>
 
-// TODO Replace void* server by actual server data struct
-int gs_init(void* server, char* address, const char* key_dir, bool unsupported);
+#include <Limelight.h>
+
+typedef struct _SERVER_DATA {
+  const char* address;
+  char* gpuType;
+  bool paired;
+  bool supports4K;
+  bool unsupported;
+  int currentGame;
+  int serverMajorVersion;
+  char* gsVersion;
+  PDISPLAY_MODE modes;
+  SERVER_INFORMATION serverInfo;
+} SERVER_DATA, *PSERVER_DATA;
+
+int gs_init(PSERVER_DATA server, char* address, const char* key_dir, bool unsupported);

@@ -32,6 +32,8 @@
 #include <wolfssl/openssl/ssl.h>
 #include <wolfssl/wolfcrypt/asn_public.h>
 
+#include <uuid/uuid.h>
+
 #define UNIQUE_FILE_NAME "uniqueid.dat"
 #define P12_FILE_NAME "client.p12"
 
@@ -46,6 +48,12 @@ static char cert_hex[4096];
 static WOLFSSL_EVP_PKEY* private_key;
 
 const char* gs_error;
+
+static int load_server_status(PSERVER_DATA server)
+{
+	//TODO
+	return 0;
+}
 
 static int load_unique_id(const char* keyDirectory) {
     char uniqueFilePath[PATH_MAX];
@@ -194,7 +202,7 @@ static int load_cert(const char* keyDirectory)
   return GS_OK;
 }
 
-int gs_init(void* server, char* address, const char* key_dir, bool unsupported)
+int gs_init(PSERVER_DATA server, char* address, const char* key_dir, bool unsupported)
 {
 	mkdir(key_dir, 777);
 	
@@ -216,10 +224,22 @@ int gs_init(void* server, char* address, const char* key_dir, bool unsupported)
 	printf("[INFO] Initialization done\n");
 	  
 	//Connection
+	
+	if (http_init(key_dir) != GS_OK)
+	{
+		printf("[ERROR] Unable to init HTTP engine\n");
+        return GS_FAILED;
+	}
 	  
 	printf("[INFO] Connecting to %s...\n", address);
 	
-	//TODO
-
-    return GS_OK;
+	//TODO This :
+	
+	/*LiInitializeServerInformation(&server->serverInfo);
+	server->serverInfo.address = address;
+	server->unsupported = unsupported;
+	
+    return load_server_status(server);*/
+	
+	return 0;
 }

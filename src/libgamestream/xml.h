@@ -19,14 +19,9 @@
 
 #pragma once
 
-#define CERTIFICATE_FILE_NAME "client.pem"
-#define KEY_FILE_NAME "key.pem"
-
-#include <stdio.h>
-
-typedef struct _HTTP_DATA {
-  char *memory;
-  size_t size;
-} HTTP_DATA, *PHTTP_DATA;
-
-int http_init(const char* key_dir);
+typedef struct _DISPLAY_MODE {
+  unsigned int height;
+  unsigned int width;
+  unsigned int refresh;
+  struct _DISPLAY_MODE *next;
+} DISPLAY_MODE, *PDISPLAY_MODE;
