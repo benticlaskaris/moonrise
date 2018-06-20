@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+#define HTTP_DEBUG true
 
 static CURL *curl;
 
@@ -41,6 +44,36 @@ static size_t _write_curl(void *contents, size_t size, size_t nmemb, void *userp
   mem->memory[mem->size] = 0;
  
   return realsize;
+}
+
+int http_request(char* url, PHTTP_DATA data) {
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+
+  if (HTTP_DEBUG)
+    printf("[DEBUG] HTTP Request %s\n", url);
+
+  if (data->size > 0) {
+    free(data->memory);
+    data->memory = malloc(1);
+    if(data->memory == NULL)
+      return GS_OUT_OF_MEMORY;
+
+    data->size = 0;
+  }
+  CURLcode res = curl_easy_perform(curl);
+  
+  if(res != CURLE_OK) {
+    gs_error = curl_easy_strerror(res);
+    return GS_FAILED;
+  } else if (data->memory == NULL) {
+    return GS_OUT_OF_MEMORY;
+  }
+
+  if (HTTP_DEBUG)
+    printf("[DEBUG] HTTP Response:\n%s\n\n", data->memory);
+  
+  return GS_OK;
 }
 
 int http_init(const char* key_dir)
@@ -66,6 +99,33 @@ int http_init(const char* key_dir)
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl);
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 0L);
+    
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_STDERR, stdout);
 	
 	return GS_OK;
+}
+
+PHTTP_DATA http_create_data() {
+  PHTTP_DATA data = malloc(sizeof(HTTP_DATA));
+  if (data == NULL)
+    return NULL;
+
+  data->memory = malloc(1);
+  if(data->memory == NULL) {
+    free(data);
+    return NULL;
+  }
+  data->size = 0;
+
+  return data;
+}
+
+void http_free_data(PHTTP_DATA data) {
+  if (data != NULL) {
+    if (data->memory != NULL)
+      free(data->memory);
+
+    free(data);
+  }
 }

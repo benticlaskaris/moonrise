@@ -32,7 +32,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	src src/libgamestream
+SOURCES		:=	src src/libgamestream libs/moonlight-common-c/src libs/moonlight-common-c/reedsolomon
 DATA		:=	data
 INCLUDES	:=	include libs/moonlight-common-c/reedsolomon libs/moonlight-common-c/src
 EXEFS_SRC	:=	exefs_src
@@ -53,7 +53,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=  -luuid -lwolfssl -lnx -luuid -lcurl -lz -lm
+LIBS	:=  -lenet -luuid -lwolfssl -luuid -lcurl -lmbedtls -lmbedx509 -lmbedcrypto -lz -lnx -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

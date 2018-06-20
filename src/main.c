@@ -55,8 +55,9 @@ int main(int argc, char **argv)
 	printf("[INFO] Initialization...\n");
 	
 	int ret;
+	SERVER_DATA server;
 	
-	if ((ret = gs_init(NULL, config.address, KEY_DIR, config.unsupported)) == GS_OUT_OF_MEMORY) 
+	if ((ret = gs_init(&server, config.address, KEY_DIR, config.unsupported)) == GS_OUT_OF_MEMORY) 
 	{
 		printf("[ERROR] Not enough memory\n");
 	}

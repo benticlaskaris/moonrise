@@ -51,7 +51,67 @@ const char* gs_error;
 
 static int load_server_status(PSERVER_DATA server)
 {
-	//TODO
+	uuid_t uuid;
+	char uuid_str[37];
+
+	int ret;
+	char url[4096];
+	int i;
+	
+	i = 0;
+	
+	do {
+		char *pairedText = NULL;
+		char *currentGameText = NULL;
+		char *stateText = NULL;
+		char *serverCodecModeSupportText = NULL;
+		
+		ret = GS_INVALID;
+		
+		uuid_generate_random(uuid);
+		uuid_unparse(uuid, uuid_str);
+		
+		// Modern GFE versions don't allow serverinfo to be fetched over HTTPS if the client
+		// is not already paired. Since we can't pair without knowing the server version, we
+		// make another request over HTTP if the HTTPS request fails. We can't just use HTTP
+		// for everything because it doesn't accurately tell us if we're paired.
+		snprintf(url, sizeof(url), "%s://%s:%d/serverinfo?uniqueid=%s&uuid=%s",
+			i == 0 ? "https" : "http", server->serverInfo.address, i == 0 ? 47984 : 47989, unique_id, uuid_str);
+			
+		PHTTP_DATA data = http_create_data();
+		if (data == NULL) {
+		  ret = GS_OUT_OF_MEMORY;
+		  goto cleanup;
+		}
+        		
+		int ret = http_request(url, data);
+		
+		if (ret != GS_OK) {
+		  printf("[INFO] Try %d : %d (%s)\n", i, ret, gs_error);
+		  ret = GS_IO_ERROR;
+		  goto cleanup;
+		}
+		
+		/// ...
+		
+		ret = GS_OK;
+
+		cleanup:
+		if (data != NULL)
+		  http_free_data(data);
+
+		if (pairedText != NULL)
+		  free(pairedText);
+
+		if (currentGameText != NULL)
+		  free(currentGameText);
+
+		if (serverCodecModeSupportText != NULL)
+		  free(serverCodecModeSupportText);
+
+		i++;
+	} while (ret != GS_OK && i < 2);
+	
 	return 0;
 }
 
@@ -232,14 +292,15 @@ int gs_init(PSERVER_DATA server, char* address, const char* key_dir, bool unsupp
 	}
 	  
 	printf("[INFO] Connecting to %s...\n", address);
-	
-	//TODO This :
-	
-	/*LiInitializeServerInformation(&server->serverInfo);
+			
+	LiInitializeServerInformation(&server->serverInfo);
+		
 	server->serverInfo.address = address;
 	server->unsupported = unsupported;
 	
-    return load_server_status(server);*/
+    int ret = load_server_status(server);
+		
+	printf("[INFO] Connected\n");
 	
-	return 0;
+	return ret;
 }
